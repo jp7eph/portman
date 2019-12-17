@@ -148,18 +148,21 @@ class Request :
 
         res = RequestResult()
 
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.settimeout(self.tout)
-            try:
-                s.connect((self.url, int(self.port)))
-                res.success = True
-                res.errcode = REQ_SUCCESS
-            except socket.timeout as err:
-                res.success = False
-                res.errcode = REQ_TIMEOUT
-            except OSError as err:
-                res.success = False
-                res.errcode = REQ_FAILED
+        for addrinfo in socket.getaddrinfo(self.url, int(self.port), socket.AF_UNSPEC, socket.SOCK_STREAM):
+            af, socktype, proto, canonname, sa = addrinfo
+            with socket.socket(af, socktype, proto) as s:
+                s.settimeout(self.tout)
+                try:
+                    s.connect(sa)
+                    res.success = True
+                    res.errcode = REQ_SUCCESS
+                except socket.timeout as err:
+                    res.success = False
+                    res.errcode = REQ_TIMEOUT
+                except OSError as err:
+                    res.success = False
+                    res.errcode = REQ_FAILED
+            break
 
         return res
 
@@ -318,7 +321,9 @@ class CursesCtrl () :
                             target.name[0:self.length_hostname], line_color)
         self.waddstr (linenum, self.start_url,
                             target.url[0:self.length_url] + ":" + target.port, line_color)
-        # TODO: ↑多分直さないとだめ。現状はtarget.urlの後ろに直接結合してる。
+        """
+        TODO: ↑多分直さないとだめ。現状はtarget.urlの後ろに直接結合してる。
+        """
 
         self.waddstr (linenum, self.ref_start, values_str, line_color)
 
